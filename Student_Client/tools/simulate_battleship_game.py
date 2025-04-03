@@ -3,7 +3,7 @@ import socket
 import json
 import time
 import random
-from BattleshipConnection import BattleshipConnection
+from Student_Client.core.BattleshipConnection import BattleshipConnection
 
 # === CONFIGURATION ===
 PLAYER1 = {"username": "Alice", "port": 9001}

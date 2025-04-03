@@ -1,0 +1,6 @@
+{
+  "username": "AI_Bot",
+  "port": 9001,
+  "matchmaking_url": "http://localhost:5000",
+  "match_code": "MATCH42"
+}

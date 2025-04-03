@@ -5,7 +5,7 @@ import json
 import requests
 import socket
 import time
-from BattleshipConnection import BattleshipConnection
+from Student_Client.core.BattleshipConnection import BattleshipConnection
 
 # === CONFIGURATION ===
 with open("config.json") as f:
