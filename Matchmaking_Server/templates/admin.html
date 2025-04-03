@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Server Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container py-4">
+  <h1 class="mb-4">🛠️ Server Admin Panel</h1>
+
+  <div class="row">
+    <div class="col-md-6">
+      <h4>🧑‍💻 Connected Players</h4>
+      <ul class="list-group" id="players-list"></ul>
+    </div>
+
+    <div class="col-md-6">
+      <h4>⏳ Waiting Matches (by Code)</h4>
+      <ul class="list-group" id="waiting-matches-list"></ul>
+    </div>
+  </div>
+
+  <hr class="my-4" />
+
+  <div class="row">
+    <div class="col-md-6">
+      <h4>⚔️ Active Matches</h4>
+      <ul class="list-group" id="active-matches-list"></ul>
+    </div>
+
+    <div class="col-md-6">
+      <h4>🏆 Match History</h4>
+      <ul class="list-group" id="match-history-list"></ul>
+    </div>
+  </div>
+
+  <hr class="my-4" />
+
+  <div class="row">
+    <div class="col-md-6">
+      <h4>📊 Scoreboard</h4>
+      <ul class="list-group" id="scoreboard-list"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function refreshAdminPanel() {
+  fetch('/players')
+    .then(res => res.json())
+    .then(data => {
+      const list = document.getElementById("players-list");
+      list.innerHTML = data.map(p =>
+        `<li class="list-group-item">${p.username} – ${p.ip}:${p.port} <small class="text-muted">joined ${new Date(p.joined).toLocaleString()}</small></li>`
+      ).join('');
+    });
+
+  fetch('/admin_data')
+    .then(res => res.json())
+    .then(data => {
+      const waiting = document.getElementById("waiting-matches-list");
+      waiting.innerHTML = Object.entries(data.waiting).map(([code, user]) =>
+        `<li class="list-group-item"><strong>${code}</strong> → ${user}</li>`
+      ).join('');
+
+      const active = document.getElementById("active-matches-list");
+      active.innerHTML = Object.entries(data.active).map(([code, m]) =>
+        `<li class="list-group-item"><strong>${code}</strong>: ${m.player1} vs ${m.player2}</li>`
+      ).join('');
+
+      const history = document.getElementById("match-history-list");
+      history.innerHTML = data.history.map(h =>
+        `<li class="list-group-item">${h.timestamp} – ${h.player1} vs ${h.player2}
+        ${h.winner ? `→ 🏆 <strong>${h.winner}</strong>` : `<em>(pending)</em>`}</li>`
+      ).join('');
+
+      const scores = document.getElementById("scoreboard-list");
+      scores.innerHTML = data.scores.map(s =>
+        `<li class="list-group-item">${s[0]}: ${s[1]} pts</li>`
+      ).join('');
+    });
+}
+
+setInterval(refreshAdminPanel, 3000);
+refreshAdminPanel();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
