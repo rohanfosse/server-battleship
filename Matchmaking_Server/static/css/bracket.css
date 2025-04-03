@@ -5,42 +5,78 @@
   padding: 1rem 0;
 }
 
+/* === Bracket Display === */
 .bracket-round {
-  min-width: 200px;
+  display: inline-block;
+  min-width: 220px;
+  margin-right: 1rem;
+  vertical-align: top;
 }
 
 .bracket-round-title {
-  font-weight: bold;
   text-align: center;
-  margin-bottom: 10px;
+  font-weight: bold;
+  padding: 0.5rem;
+  background: #f1f1f1;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
 }
 
 .bracket-match {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  padding: 8px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  text-align: center;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+
+.bracket-match:hover {
+  background-color: #f9f9f9;
+  transform: translateY(-2px);
 }
 
 .bracket-match.winner {
-  border-color: #198754;
-  background-color: #e6f4ea;
-}
-
-.bracket-match .player {
-  font-weight: 500;
+  border: 2px solid #198754; /* Bootstrap green */
+  background-color: #e9fbe5;
 }
 
 .bracket-match .vs {
-  font-size: 0.85rem;
-  color: #666;
-  margin: 4px 0;
+  text-align: center;
+  margin: 0.5rem 0;
+  font-style: italic;
+  color: #888;
 }
 
 .bracket-match .result {
-  font-size: 0.9rem;
-  color: #0d6efd;
-  margin-top: 4px;
+  text-align: center;
+  margin-top: 0.5rem;
+  font-weight: bold;
+}
+
+/* === Launch + Winner Modals === */
+.modal-content {
+  border-radius: 1rem;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
+
+.modal-header.bg-primary,
+.modal-header.bg-dark {
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+}
+
+.modal-footer button {
+  min-width: 120px;
+}
+
+/* Optional animation */
+.animate-highlight {
+  animation: glow 0.9s ease-in-out;
+}
+
+@keyframes glow {
+  0% { background-color: #ffe066; }
+  100% { background-color: transparent; }
 }

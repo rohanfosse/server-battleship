@@ -122,6 +122,41 @@ def confirm_match():
 
     return jsonify({'status': 'match_started', 'match_code': code})
 
+@app.route('/start_tournament_match', methods=['POST'])
+def start_tournament_match():
+    """Lancer un match de tournoi entre deux joueurs"""
+    data = request.json
+    p1 = data.get("player1")
+    p2 = data.get("player2")
+    match_id = data.get("match_id")
+
+    if not p1 or not p2 or match_id is None:
+        return jsonify({"error": "Missing player names or match ID"}), 400
+
+    # Vérifie que le match existe dans le bracket
+    if not tournament_state["bracket"]:
+        return jsonify({"error": "No tournament in progress"}), 400
+
+    match = next((m for m in tournament_state["bracket"]["matches"] if m["id"] == match_id), None)
+    if not match:
+        return jsonify({"error": "Match ID not found in bracket"}), 404
+
+    # Vérifie que le match n'a pas déjà de gagnant
+    if match.get("opponent1", {}).get("result") == "win" or match.get("opponent2", {}).get("result") == "win":
+        return jsonify({"error": "Match already completed"}), 400
+
+    # Enregistre le match dans l’historique
+    match_code = f"{p1}_{p2}_{match_id}"
+    matches_history.append({
+        "player1": p1,
+        "player2": p2,
+        "timestamp": datetime.now().strftime("%d/%m/%Y %H:%M"),
+        "winner": None,
+        "code": match_code
+    })
+
+    return jsonify({"status": "match_started", "code": match_code})
+
 # === MATCHES WITH CODES (PRIVATE MATCHING) ===
 
 @app.route('/create_match', methods=['POST'])
@@ -236,7 +271,6 @@ def reset_tournament():
 
 
 # === SCORES AND STATS ===
-
 @app.route('/match_result', methods=['POST'])
 def match_result():
     """Submit the result of a finished match"""
@@ -247,14 +281,48 @@ def match_result():
     if not winner or not loser:
         return jsonify({'error': 'Missing result data'}), 400
 
+    # ✅ Mise à jour du score général
     scores[winner] = scores.get(winner, 0) + 1
 
+    # ✅ Enregistrement dans l'historique (match le plus récent non terminé)
     for match in reversed(matches_history):
         if match["winner"] is None and winner in [match["player1"], match["player2"]]:
             match["winner"] = winner
             break
 
+    # ✅ Si un tournoi est en cours, on met à jour le bracket
+    if tournament_state["started"] and tournament_state["bracket"]:
+        matches = tournament_state["bracket"]["matches"]
+        current_match = None
+
+        # Trouve le match dans le bracket
+        for match in matches:
+            if match["opponent1"] and match["opponent1"].get("name") == winner:
+                match["opponent1"]["result"] = "win"
+                current_match = match
+                break
+            elif match["opponent2"] and match["opponent2"].get("name") == winner:
+                match["opponent2"]["result"] = "win"
+                current_match = match
+                break
+
+        # Avance automatiquement le gagnant au tour suivant
+        if current_match:
+            next_round = current_match["round"] + 1
+            current_round_matches = [m for m in matches if m["round"] == current_match["round"]]
+            next_round_matches = [m for m in matches if m["round"] == next_round]
+
+            # Index du match dans le round courant (permet de savoir où l’envoyer ensuite)
+            match_index = current_round_matches.index(current_match)
+            next_match_index = match_index // 2
+
+            if next_match_index < len(next_round_matches):
+                next_match = next_round_matches[next_match_index]
+                target_slot = "opponent1" if not next_match.get("opponent1") else "opponent2"
+                next_match[target_slot] = {"id": None, "name": winner}
+
     return jsonify({'status': 'result recorded'})
+
 
 @app.route('/scores_history')
 def scores_history():

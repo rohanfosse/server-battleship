@@ -24,23 +24,32 @@ function renderNativeBracket(container, data) {
     });
   
     const roundNumbers = Object.keys(rounds).map(n => parseInt(n)).sort((a, b) => a - b);
-    const roundNames = ["Round 1", "Quarter-finals", "Semi-finals", "Final", "Grand Final"];
+    const totalRounds = roundNumbers.length;
   
-    // Update current round indicator
+    // Generate round names dynamically
+    const roundNames = roundNumbers.map((roundNum, index) => {
+      const remaining = totalRounds - index;
+      if (remaining === 1) return "Final";
+      if (remaining === 2) return "Semi-finals";
+      if (remaining === 3) return "Quarter-finals";
+      return `Round ${index + 1}`;
+    });
+  
+    // Update current round indicator and progress
     const currentRoundElement = document.getElementById("current-round");
-    if (currentRoundElement && roundNumbers.length > 0) {
-      currentRoundElement.textContent = roundNumbers.length;
-    }
+    if (currentRoundElement) currentRoundElement.textContent = roundNumbers.length;
   
-    // Update progress bar
     const progress = document.getElementById("round-progress");
     if (progress) {
-      const percent = (roundNumbers.length / roundNames.length) * 100;
+      const percent = (roundNumbers.length / totalRounds) * 100;
       progress.style.width = `${percent}%`;
       progress.textContent = `${Math.round(percent)}%`;
     }
   
-    // Render rounds
+    // Clear any other modals before rendering
+    document.querySelectorAll(".modal").forEach(m => m.remove());
+  
+    // Render each round
     roundNumbers.forEach((roundNum, index) => {
       const matches = rounds[roundNum];
   
@@ -74,7 +83,18 @@ function renderNativeBracket(container, data) {
         `;
   
         matchDiv.addEventListener("click", () => {
-          alert(`Match ID: ${match.id}\n${p1} vs ${p2}\n${winner ? "Winner: " + winner : "Winner: TBD"}`);
+          if (p1 !== "TBD" && p2 !== "TBD" && p1 !== "BYE" && p2 !== "BYE") {
+            const matchAlreadyStarted = match.opponent1?.result || match.opponent2?.result;
+  
+            // Avoid double modals
+            document.querySelectorAll(".modal").forEach(m => m.remove());
+  
+            if (!matchAlreadyStarted) {
+              launchMatchModal(p1, p2, match.id, matchDiv);
+            } else {
+              showWinnerModal(p1, p2, matchDiv);
+            }
+          }
         });
   
         roundDiv.appendChild(matchDiv);
@@ -82,14 +102,111 @@ function renderNativeBracket(container, data) {
   
       container.appendChild(roundDiv);
     });
+  }
   
-    // Add legend
-    const legend = document.createElement("div");
-    legend.classList.add("bracket-legend", "mt-3", "small", "text-muted");
-    legend.innerHTML = `
-      <hr>
-      <div><strong>Legend:</strong> <span class="mx-2">TBD = To Be Determined</span> | <span class="mx-2">BYE = No opponent</span> | <span class="mx-2">🏆 = Winner</span></div>
+  function launchMatchModal(p1, p2, matchId, matchDiv) {
+    const modal = document.createElement("div");
+    modal.classList.add("modal", "fade");
+    modal.setAttribute("tabindex", "-1");
+    modal.innerHTML = `
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Match Options</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Launch this match between <strong>${p1}</strong> and <strong>${p2}</strong>?</p>
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button class="btn btn-primary" id="launchBtn">Lancer le match</button>
+          </div>
+        </div>
+      </div>
     `;
-    container.appendChild(legend);
+  
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+  
+    modal.querySelector("#launchBtn").addEventListener("click", () => {
+      fetch("/start_tournament_match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player1: p1, player2: p2, match_id: matchId })
+      })
+        .then(res => res.json())
+        .then(response => {
+          if (response.status === "match_started") {
+            bsModal.hide();
+            modal.remove();
+            showWinnerModal(p1, p2, matchDiv);
+          } else {
+            alert("Error: " + (response.error || "Unknown error"));
+          }
+        })
+        .catch(err => {
+          console.error("Error launching match:", err);
+          alert("An error occurred while launching the match.");
+        });
+    });
+  }
+  
+  function showWinnerModal(p1, p2, matchDiv) {
+    const modal = document.createElement("div");
+    modal.classList.add("modal", "fade");
+    modal.setAttribute("tabindex", "-1");
+    modal.innerHTML = `
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Set Match Winner</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Who won the match between <strong>${p1}</strong> and <strong>${p2}</strong>?</p>
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button class="btn btn-outline-success" id="setWinner1">${p1}</button>
+            <button class="btn btn-outline-danger" id="setWinner2">${p2}</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+  
+    modal.querySelector("#setWinner1").addEventListener("click", () => submitResult(p1, p2, matchDiv, modal, bsModal));
+    modal.querySelector("#setWinner2").addEventListener("click", () => submitResult(p2, p1, matchDiv, modal, bsModal));
+  }
+  
+  function submitResult(winner, loser, matchDiv, modal, bsModal) {
+    fetch("/match_result", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ winner, loser })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "result recorded") {
+          matchDiv.querySelector(".result").innerHTML = `🏆 ${winner}`;
+          matchDiv.classList.add("winner");
+          matchDiv.classList.add("animate__animated", "animate__fadeInUp");
+          setTimeout(() => {
+            matchDiv.classList.remove("animate__animated", "animate__fadeInUp");
+          }, 1000);
+        } else {
+          alert("Failed to record result: " + (data.error || "Unknown error"));
+        }
+      })
+      .catch(err => {
+        console.error("Error submitting result:", err);
+        alert("An error occurred while submitting the result.");
+      })
+      .finally(() => {
+        bsModal.hide();
+        modal.remove();
+      });
   }
   
