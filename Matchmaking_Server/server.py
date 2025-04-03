@@ -240,6 +240,12 @@ def disconnect():
     if username in players:
         del players[username]
         print(f"[DISCONNECT] {username} has left the game.")
+        # Remove any pending requests or matches involving this player
+        pending_requests.pop(username, None)
+        matches_history[:] = [m for m in matches_history if m["player1"] != username and m["player2"] != username]
+        waiting_matches = {k: v for k, v in waiting_matches.items() if v["creator"] != username}
+    else:
+        print(f"[DISCONNECT] {username} not found in players list.")
     return jsonify({'status': 'disconnected'})
 
 
