@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Battleship Matchmaking Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <style>
+    .timer-bar {
+      height: 8px;
+      background-color: #dc3545;
+      transition: width 1s linear;
+    }
+    .match-request .timer-container {
+      background-color: #f8d7da;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    .player-tag.online { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+<div class="container py-4">
+  <h1 class="text-center mb-4">🎯 Battleship Matchmaking Center</h1>
+
+  <!-- Navigation Tabs -->
+  <ul class="nav nav-tabs" id="mainTabs">
+    <li class="nav-item">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-players">Players</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-scores">Scores</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-history">Match History</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-stats">Global Stats</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-help">Help</button>
+    </li>
+  </ul>
+
+  <div class="tab-content mt-3">
+    <!-- Players Tab -->
+    <div class="tab-pane fade show active" id="tab-players">
+      <h4>Connected Players</h4>
+      <div class="input-group mb-3">
+        <input id="matchCode" class="form-control" placeholder="(Optional) Match code (e.g., ABC123)">
+        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+      </div>
+      <div id="players-list" class="list-group"></div>
+      <div id="match-status"></div>
+    </div>
+
+    <!-- Scores Tab -->
+    <div class="tab-pane fade" id="tab-scores">
+      <h4>Leaderboard</h4>
+      <div id="scores-list" class="list-group"></div>
+    </div>
+
+    <!-- History Tab -->
+    <div class="tab-pane fade" id="tab-history">
+      <h4>Recent Matches</h4>
+      <div id="history-list" class="list-group"></div>
+    </div>
+
+    <!-- Stats Tab -->
+    <div class="tab-pane fade" id="tab-stats">
+      <h4>Game Statistics</h4>
+      <div id="global-stats" class="list-group"></div>
+    </div>
+
+    <!-- Help Tab -->
+    <div class="tab-pane fade" id="tab-help">
+      <h4>How to Play</h4>
+      <ul>
+        <li>Start your <code>local_server.py</code> script.</li>
+        <li>Wait to be listed in the "Players" tab.</li>
+        <li>Click "Propose Match" to challenge someone.</li>
+        <li>If they accept, you will see a match code in your terminal.</li>
+        <li>Use your local terminal to declare who won the match.</li>
+      </ul>
+      <p class="mt-3 text-muted"><i class="bi bi-shield-check"></i> All match data is saved and secure.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const myUsername = localStorage.getItem("player_id") || "Unknown";
+
+function loadPlayers() {
+  fetch("/players").then(r => r.json()).then(data => {
+    playersList.innerHTML = data.map(p => `
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <span><strong>${p.username}</strong></span>
+        <button class="btn btn-sm btn-outline-primary" onclick="proposeMatch('${p.username}')">
+          Propose Match <i class="bi bi-arrow-right-circle"></i>
+        </button>
+      </div>`).join('');
+  });
+}
+
+function proposeMatch(to) {
+  const code = document.getElementById("matchCode").value.trim();
+  fetch("/propose_match", {
+    method: "POST",
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: myUsername, to: to, code: code || null })
+  }).then(r => r.json()).then(data => {
+    if (data.status === "request sent") {
+      matchStatus.innerHTML = `
+        <div class="match-request mt-3">
+          <p>Match request sent to <strong>${to}</strong></p>
+          <div class="timer-container"><div id="timerBar" class="timer-bar"></div></div>
+        </div>`;
+      startTimerBar();
+    } else {
+      alert("⚠️ Could not send match request.");
+    }
+  });
+}
+
+function startTimerBar() {
+  const bar = document.getElementById('timerBar');
+  let time = 30;
+  bar.style.width = "100%";
+  const interval = setInterval(() => {
+    time--;
+    bar.style.width = (time / 30) * 100 + "%";
+    if (time <= 0) clearInterval(interval);
+  }, 1000);
+}
+
+function loadScoresHistoryStats() {
+  fetch("/scores_history").then(r => r.json()).then(data => {
+    scoresList.innerHTML = data.scores.map(s =>
+      `<div class="list-group-item">${s[0]} : <strong>${s[1]}</strong> points</div>`).join('');
+    historyList.innerHTML = data.history.map(h =>
+      `<div class="list-group-item">${h.timestamp} — ${h.player1} vs ${h.player2} ➜
+      <strong>${h.winner || "<i>Pending</i>"}</strong>
+      <span class="badge bg-secondary">${h.code || "-" }</span></div>`).join('');
+  });
+
+  fetch("/stats").then(r => r.json()).then(data => {
+    globalStats.innerHTML = `
+      <div class="list-group-item">Total matches: <strong>${data.total_matches}</strong></div>
+      <div class="list-group-item">Average duration: <strong>${data.avg_duration.toFixed(2)} sec</strong></div>
+      ${Object.entries(data.win_percentages).map(([p, pct]) =>
+        `<div class="list-group-item">${p} : ${pct.toFixed(1)}% win rate</div>`
+      ).join('')}
+    `;
+  });
+}
+
+// Auto-refresh
+setInterval(() => {
+  loadPlayers();
+  loadScoresHistoryStats();
+}, 5000);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
