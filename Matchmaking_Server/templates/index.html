@@ -6,103 +6,129 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/brackets-viewer@latest/dist/brackets-viewer.min.css" />  <style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/brackets-viewer@latest/dist/brackets-viewer.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <style>
     .timer-bar { height: 8px; background-color: #dc3545; transition: width 1s linear; }
     .match-request .timer-container { background-color: #f8d7da; border-radius: 4px; overflow: hidden; margin-top: 5px; }
     .player-tag.online { color: green; font-weight: bold; }
   </style>
-  <link rel="stylesheet" href="../static/css/bracket.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-
 </head>
+
 <body>
 <div class="container py-4">
   <h1 class="text-center mb-4">🎯 Battleship Matchmaking Center</h1>
 
-  <!-- Tabs -->
-  <ul class="nav nav-tabs">
-    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-players">Players</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-pending">Pending Matches</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-scores">Scores</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-history">Match History</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-stats">Global Stats</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-help">Help</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-tournament">Tournament</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-bracket">Bracket</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-player">Player Profile</button></li>
+  <!-- Nav Tabs -->
+  <ul class="nav nav-tabs justify-content-center">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-players"><i class="bi bi-people-fill"></i> Players</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-pending"><i class="bi bi-clock"></i> Pending</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-scores"><i class="bi bi-bar-chart-line"></i> Scores</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-history"><i class="bi bi-hourglass-split"></i> History</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-stats"><i class="bi bi-graph-up"></i> Stats</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-tournament"><i class="bi bi-trophy-fill"></i> Tournament</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-player"><i class="bi bi-person-badge"></i> Profile</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-help"><i class="bi bi-question-circle"></i> Help</button></li>
   </ul>
 
-  <div class="tab-content mt-3">
+  <!-- Tab Contents -->
+  <div class="tab-content mt-4">
+
     <!-- Players -->
     <div class="tab-pane fade show active" id="tab-players">
-      <h4>Connected Players</h4>
-      <div id="players-list" class="list-group"></div>
+      <div class="card shadow-sm">
+        <div class="card-header">🟢 Connected Players</div>
+        <div class="card-body">
+          <div id="players-list" class="list-group"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Pending Matches -->
     <div class="tab-pane fade" id="tab-pending">
-      <h4>Pending Matches</h4>
-      <div id="pending-list" class="list-group mb-3"></div>
+      <div class="card shadow-sm">
+        <div class="card-header">🕒 Pending Matches</div>
+        <div class="card-body">
+          <div id="pending-list" class="list-group"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Scores -->
     <div class="tab-pane fade" id="tab-scores">
-      <h4>Leaderboard</h4>
-      <div id="scores-list" class="list-group"></div>
+      <div class="card shadow-sm">
+        <div class="card-header">🏅 Leaderboard</div>
+        <div class="card-body">
+          <div id="scores-list" class="list-group"></div>
+        </div>
+      </div>
     </div>
 
-    <!-- History -->
+    <!-- Match History -->
     <div class="tab-pane fade" id="tab-history">
-      <h4>Recent Matches</h4>
-      <div id="history-list" class="list-group"></div>
+      <div class="card shadow-sm">
+        <div class="card-header">📖 Match History</div>
+        <div class="card-body">
+          <div id="history-list" class="list-group"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Stats -->
     <div class="tab-pane fade" id="tab-stats">
-      <h4>Game Statistics</h4>
-      <div id="global-stats" class="list-group"></div>
+      <div class="card shadow-sm">
+        <div class="card-header">📊 Global Statistics</div>
+        <div class="card-body">
+          <div id="global-stats" class="list-group"></div>
+        </div>
+      </div>
     </div>
 
-    <!-- Help -->
-    <div class="tab-pane fade" id="tab-help">
-      <h4>How to Play</h4>
-      <ul>
-        <li>Start your <code>local_server.py</code> script.</li>
-        <li>Enter your username when prompted in the terminal.</li>
-        <li>Your name will appear in the "Players" tab automatically once you are registered on the server.</li>
-        <li>To create or join a match, use the terminal interface:</li>
-        <ul>
-          <li>To create a match, choose the "Create Match" option and enter a match code.</li>
-          <li>To join a match, choose the "Join Match" option and enter the match code provided by the opponent.</li>
-        </ul>
-        <li>The match will be established between local clients, and you will be able to play against the opponent.</li>
-        <li>Once the match is over, use the terminal interface to declare the winner by selecting "Submit Match Result".</li>
-      </ul>
-      <p class="text-muted"><i class="bi bi-shield-check"></i> Match history and scores are recorded securely and can be viewed in the admin panel.</p>
+    <!-- Tournament -->
+    <div class="tab-pane fade" id="tab-tournament">
+      {% include 'partials/tab_tournament.html' %}
     </div>
-
-    <!-- Tournament View -->
-<div class="tab-pane fade" id="tab-tournament">
-  {% include 'partials/tab_tournament.html' %}
-</div>
-
-    <!-- Bracket View -->
-<div class="tab-pane fade" id="tab-bracket">
-  {% include 'partials/tab_bracket.html' %}
-</div>
 
     <!-- Player Profile -->
     <div class="tab-pane fade" id="tab-player">
       {% include 'partials/tab_player.html' %}
     </div>
+
+    <!-- Help -->
+    <div class="tab-pane fade" id="tab-help">
+      <div class="card shadow-sm">
+        <div class="card-header">📘 How to Play</div>
+        <div class="card-body">
+          <ol>
+            <li>Start your <code>local_server.py</code>.</li>
+            <li>Register by entering your username.</li>
+            <li>Check if you're connected in the "Players" tab.</li>
+            <li>Use the menu to:
+              <ul>
+                <li>Create a match with a code</li>
+                <li>Join a match with an existing code</li>
+              </ul>
+            </li>
+            <li>Once the game ends, declare the winner in the CLI.</li>
+          </ol>
+          <p class="text-muted"><i class="bi bi-info-circle"></i> Stats and scores are stored securely on the server.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bracket - Disabled -->
+    <!--
+    <div class="tab-pane fade" id="tab-bracket">
+      {% include 'partials/tab_bracket.html' %}
+    </div>
+    -->
+
   </div>
 </div>
 
-<!-- External Libraries -->
+<!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script src="/static/js/native_bracket_renderer.js"></script>
-<!-- Core Logic -->
 <script src="../static/js/tournament.js"></script>
 <script src="../static/js/player.js"></script>
 
@@ -113,25 +139,23 @@ const scoresList = document.getElementById("scores-list");
 const historyList = document.getElementById("history-list");
 const globalStats = document.getElementById("global-stats");
 
-// Load players from server
 function loadPlayers() {
   fetch("/players")
     .then(res => res.json())
     .then(data => {
       playersList.innerHTML = data.map(p => `
-        <div class="list-group-item">
-          <strong>${p.username}</strong> <small class="text-muted">(${p.ip}:${p.port})</small>
+        <div class="list-group-item d-flex justify-content-between">
+          <span><strong>${p.username}</strong></span>
+          <small class="text-muted">${p.ip}:${p.port}</small>
         </div>`).join('');
     });
 }
 
-// Load scores and history
 function loadScoresHistoryStats() {
   fetch("/scores_history").then(r => r.json()).then(data => {
     scoresList.innerHTML = data.scores.map(s =>
-      `<div class="list-group-item">${s[0]} : <strong>${s[1]}</strong> points</div>`
+      `<div class="list-group-item">${s[0]} : <strong>${s[1]}</strong> pts</div>`
     ).join('');
-
     historyList.innerHTML = data.history.map(h =>
       `<div class="list-group-item">${h.timestamp} — ${h.player1} vs ${h.player2} ➜
       <strong>${h.winner || "<i>Pending</i>"}</strong></div>`
@@ -141,26 +165,24 @@ function loadScoresHistoryStats() {
   fetch("/stats").then(r => r.json()).then(data => {
     globalStats.innerHTML = `
       <div class="list-group-item">Total matches: <strong>${data.total_matches}</strong></div>
-      <div class="list-group-item">Average match duration: <strong>${data.avg_duration.toFixed(2)} sec</strong></div>
+      <div class="list-group-item">Avg duration: <strong>${data.avg_duration.toFixed(2)}s</strong></div>
       ${Object.entries(data.win_percentages).map(([p, pct]) =>
-        `<div class="list-group-item">${p} : ${pct.toFixed(1)}% win rate</div>`
+        `<div class="list-group-item">${p}: ${pct.toFixed(1)}% win rate</div>`
       ).join('')}
     `;
   });
 }
 
-// Load waiting matches
 function loadPendingMatches() {
   fetch("/pending_matches")
     .then(res => res.json())
     .then(data => {
-      if (!Array.isArray(data)) return;
       pendingList.innerHTML = data.map(p => `
-        <div class="list-group-item d-flex justify-content-between align-items-center">
-          <span><strong>${p.creator}</strong> waiting on code <code>${p.code}</code></span>
-          <span class="text-muted small">Created ${new Date(p.created_at).toLocaleTimeString()}</span>
+        <div class="list-group-item d-flex justify-content-between">
+          <span><strong>${p.creator}</strong> on code <code>${p.code}</code></span>
+          <small class="text-muted">${new Date(p.created_at).toLocaleTimeString()}</small>
         </div>
-      `).join('') || `<div class="list-group-item text-muted">No matches waiting.</div>`;
+      `).join('') || `<div class="list-group-item text-muted">No pending matches.</div>`;
     });
 }
 
@@ -171,7 +193,7 @@ loadPendingMatches();
 updateTournamentStatus();
 loadPlayerProfile();
 
-// Periodic refresh
+// Refresh
 setInterval(() => {
   loadPlayers();
   loadScoresHistoryStats();
