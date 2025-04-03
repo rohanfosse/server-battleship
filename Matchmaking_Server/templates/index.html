@@ -6,11 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-  <style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/brackets-viewer@latest/dist/brackets-viewer.min.css" />  <style>
     .timer-bar { height: 8px; background-color: #dc3545; transition: width 1s linear; }
     .match-request .timer-container { background-color: #f8d7da; border-radius: 4px; overflow: hidden; margin-top: 5px; }
     .player-tag.online { color: green; font-weight: bold; }
   </style>
+  <link rel="stylesheet" href="../static/css/bracket.css">
+
 </head>
 <body>
 <div class="container py-4">
@@ -24,6 +26,9 @@
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-history">Match History</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-stats">Global Stats</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-help">Help</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-tournament">Tournament</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-bracket">Bracket</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-player">Player Profile</button></li>
   </ul>
 
   <div class="tab-content mt-3">
@@ -57,26 +62,48 @@
       <div id="global-stats" class="list-group"></div>
     </div>
 
+    <!-- Help -->
     <div class="tab-pane fade" id="tab-help">
-        <h4>How to Play</h4>
+      <h4>How to Play</h4>
+      <ul>
+        <li>Start your <code>local_server.py</code> script.</li>
+        <li>Enter your username when prompted in the terminal.</li>
+        <li>Your name will appear in the "Players" tab automatically once you are registered on the server.</li>
+        <li>To create or join a match, use the terminal interface:</li>
         <ul>
-            <li>Start your <code>local_server.py</code> script.</li>
-            <li>Enter your username when prompted in the terminal.</li>
-            <li>Your name will appear in the "Players" tab automatically once you are registered on the server.</li>
-            <li>To create or join a match, use the terminal interface:</li>
-            <ul>
-                <li>To create a match, choose the "Create Match" option and enter a match code.</li>
-                <li>To join a match, choose the "Join Match" option and enter the match code provided by the opponent.</li>
-            </ul>
-            <li>The match will be established between local clients, and you will be able to play against the opponent.</li>
-            <li>During the game, you will send and receive moves via the server, which will update your game board in real-time.</li>
-            <li>Once the match is over, use the terminal interface to declare the winner by selecting "Submit Match Result".</li>
+          <li>To create a match, choose the "Create Match" option and enter a match code.</li>
+          <li>To join a match, choose the "Join Match" option and enter the match code provided by the opponent.</li>
         </ul>
-        <p class="text-muted"><i class="bi bi-shield-check"></i> Match history and scores are recorded securely and can be viewed in the admin panel.</p>
+        <li>The match will be established between local clients, and you will be able to play against the opponent.</li>
+        <li>Once the match is over, use the terminal interface to declare the winner by selecting "Submit Match Result".</li>
+      </ul>
+      <p class="text-muted"><i class="bi bi-shield-check"></i> Match history and scores are recorded securely and can be viewed in the admin panel.</p>
     </div>
-    
+
+    <!-- Tournament View -->
+<div class="tab-pane fade" id="tab-tournament">
+  {% include 'partials/tab_tournament.html' %}
+</div>
+
+    <!-- Bracket View -->
+<div class="tab-pane fade" id="tab-bracket">
+  {% include 'partials/tab_bracket.html' %}
+</div>
+
+    <!-- Player Profile -->
+    <div class="tab-pane fade" id="tab-player">
+      {% include 'partials/tab_player.html' %}
+    </div>
   </div>
 </div>
+
+<!-- External Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="/static/js/native_bracket_renderer.js"></script>
+<!-- Core Logic -->
+<script src="../static/js/tournament.js"></script>
+<script src="../static/js/player.js"></script>
 
 <script>
 const playersList = document.getElementById("players-list");
@@ -85,6 +112,7 @@ const scoresList = document.getElementById("scores-list");
 const historyList = document.getElementById("history-list");
 const globalStats = document.getElementById("global-stats");
 
+// Load players from server
 function loadPlayers() {
   fetch("/players")
     .then(res => res.json())
@@ -96,6 +124,7 @@ function loadPlayers() {
     });
 }
 
+// Load scores and history
 function loadScoresHistoryStats() {
   fetch("/scores_history").then(r => r.json()).then(data => {
     scoresList.innerHTML = data.scores.map(s =>
@@ -119,6 +148,7 @@ function loadScoresHistoryStats() {
   });
 }
 
+// Load waiting matches
 function loadPendingMatches() {
   fetch("/pending_matches")
     .then(res => res.json())
@@ -133,17 +163,20 @@ function loadPendingMatches() {
     });
 }
 
-// Initial load and periodic refresh
+// Initial load
 loadPlayers();
 loadScoresHistoryStats();
 loadPendingMatches();
+updateTournamentStatus();
+loadPlayerProfile();
+
+// Periodic refresh
 setInterval(() => {
   loadPlayers();
   loadScoresHistoryStats();
   loadPendingMatches();
+  updateTournamentStatus();
 }, 5000);
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

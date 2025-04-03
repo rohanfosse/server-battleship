@@ -1,0 +1,65 @@
+/* Container styling */
+.bracket-container {
+    display: flex;
+    gap: 2rem;
+    overflow-x: auto;
+    padding: 1rem 0;
+  }
+  
+  /* Round columns */
+  .bracket-round {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 180px;
+  }
+  
+  /* Each match block */
+  .bracket-match {
+    background: #f8f9fa;
+    border: 1px solid #ccc;
+    padding: 10px 15px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    font-family: 'Segoe UI', sans-serif;
+    transition: transform 0.2s ease;
+  }
+  
+  .bracket-match:hover {
+    transform: scale(1.02);
+    background-color: #eef5ff;
+  }
+  
+  /* Winner highlight */
+  .bracket-match.winner {
+    border-color: #28a745;
+    background-color: #e9fbe5;
+    font-weight: bold;
+  }
+  
+  .bracket-match .vs {
+    font-size: 0.9rem;
+    color: #888;
+    margin: 6px 0;
+  }
+  
+  .bracket-match .result {
+    font-size: 0.85rem;
+    color: #333;
+    margin-top: 5px;
+  }
+  
+  /* Responsive tweaks */
+  @media (max-width: 768px) {
+    .bracket-container {
+      flex-direction: column;
+      align-items: center;
+    }
+    .bracket-round {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  }
+  

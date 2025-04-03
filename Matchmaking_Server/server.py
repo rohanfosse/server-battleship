@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 from datetime import datetime, timezone
+from bracket_generator import generate_bracket
+
 
 app = Flask(__name__)
 
@@ -10,6 +12,13 @@ scores = {}  # {username: score}
 matches_history = []  # List of {player1, player2, code, timestamp, winner, duration}
 pending_requests = {}  # {to_username: {'from': ..., 'code': ...}}
 waiting_matches = {}  # {code: {'creator': username, 'created_at': timestamp}}
+
+tournament_state = {
+    "started": False,
+    "bracket": None,
+    "started_at": None
+}
+
 
 # === FRONTEND ROUTES ===
 
@@ -167,6 +176,64 @@ def match_status():
         if match["code"] == code and match["winner"] is None:
             return jsonify({"status": "active", "opponent": match["player2"]})
     return jsonify({"status": "waiting"})
+
+# === TOURNAMENT ===
+
+@app.route('/bracket_data')
+def dynamic_bracket_data():
+    """Return the active bracket or generate one if needed"""
+    if tournament_state["started"] and tournament_state["bracket"]:
+        return jsonify(tournament_state["bracket"])
+    
+    current_players = list(players.keys())
+    if len(current_players) < 2:
+        return jsonify({"error": "Not enough players to start a tournament"}), 400
+
+    return jsonify(generate_bracket(current_players))
+
+@app.route('/start_tournament', methods=['POST'])
+def start_tournament():
+    """Launch the tournament and store bracket in memory"""
+    global tournament_state
+
+    current_players = list(players.keys())
+    if len(current_players) < 2:
+        return jsonify({"error": "Not enough players"}), 400
+
+    bracket = generate_bracket(current_players)
+    tournament_state = {
+        "started": True,
+        "bracket": bracket,
+        "started_at": datetime.now().isoformat()
+    }
+
+    print(f"[TOURNAMENT] Started with {len(current_players)} players at {tournament_state['started_at']}")
+    return jsonify({"status": "tournament_started", "players": current_players})
+
+@app.route('/tournament_status')
+def tournament_status():
+    return jsonify({
+        "started": tournament_state["started"],
+        "started_at": tournament_state["started_at"],
+        "player_count": len(players),
+        "players": list(players.keys())
+    })
+
+
+@app.route('/reset_tournament', methods=['POST'])
+def reset_tournament():
+    """Reset the tournament state (admin action)"""
+    global tournament_state
+    tournament_state = {
+        "started": False,
+        "bracket": None,
+        "started_at": None
+    }
+    print("[TOURNAMENT] Reset")
+    return jsonify({"status": "tournament_reset"})
+
+
+
 
 # === SCORES AND STATS ===
 
