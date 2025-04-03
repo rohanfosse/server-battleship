@@ -4,15 +4,23 @@ import requests
 import json
 import time
 import atexit
+import argparse
 
-# Chargement de la configuration
+# === Chargement de la configuration initiale ===
 with open("config.json") as f:
     config = json.load(f)
 
-PORT = config["port"]
+DEFAULT_PORT = config["port"]
 SERVER_URL = config["matchmaking_url"]
 USERNAME = None
 REGISTERED = False
+
+# === Parser de ligne de commande pour override le port ===
+parser = argparse.ArgumentParser(description="Client local Battleship")
+parser.add_argument("--port", type=int, help="Port local à utiliser (optionnel)")
+args = parser.parse_args()
+
+PORT = args.port if args.port else DEFAULT_PORT
 
 def get_public_ip():
     try:
@@ -105,7 +113,6 @@ def create_match():
         })
         if r.status_code == 200:
             print(f"📡 En attente qu'un adversaire rejoigne le match '{code}'...")
-            # Attente qu'un autre joueur rejoigne le match
             while True:
                 status = requests.get(f"{SERVER_URL}/match_status", params={"code": code})
                 if status.status_code == 200:
@@ -113,7 +120,7 @@ def create_match():
                     if data.get("status") == "active":
                         print(f"🎮 Match '{code}' commencé avec {data.get('opponent')}.")
                         break
-                time.sleep(5)  # Vérification toutes les 5 secondes
+                time.sleep(5)
         else:
             print("⚠️ Impossible de créer le match :", r.text)
     except Exception as e:
@@ -137,17 +144,14 @@ def join_match():
     except Exception as e:
         print("❌ Échec de la jonction au match :", e)
 
-
-
 def cleanup():
     try:
         requests.post(f"{SERVER_URL}/disconnect", json={"username": USERNAME})
-        print("🚪 Disconnected cleanly from server.")
+        print("🚪 Déconnecté proprement du serveur.")
     except Exception as e:
-        print("⚠️ Failed to notify server on disconnect:", e)
+        print("⚠️ Impossible de notifier le serveur :", e)
 
 atexit.register(cleanup)
-
 
 def main_menu():
     while True:
@@ -175,7 +179,6 @@ if __name__ == "__main__":
     print("🎮 Démarrage du client Battleship local...")
     get_public_ip()
 
-    # Demande du nom d'utilisateur au démarrage
     USERNAME = input("Entrez votre nom d'utilisateur : ").strip()
     if not USERNAME:
         print("❌ Nom d'utilisateur requis. Fermeture.")

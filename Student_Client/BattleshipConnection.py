@@ -109,7 +109,7 @@ class BattleshipConnection:
     def handle_opponent_move(self, data):
         """Handle the opponent's move"""
         try:
-            move = json.loads(data)["move"]
+            move = tuple(json.loads(data)["move"])
             print(f"[INFO] Opponent's move: {move}")
             # Handle the opponent's move here (game logic)
             self.update_game_board(move, opponent=True)
@@ -119,8 +119,11 @@ class BattleshipConnection:
     def update_game_board(self, move, opponent=False):
         """Update the game board with the given move"""
         if opponent:
-            self.game_board[move] = "HIT" if self.game_board.get(move) == "SHIP" else "MISS"
-            print(f"Opponent's move: {move} -> {self.game_board[move]}")
+            if self.game_board.get(move) == "SHIP":
+                self.game_board[move] = "HIT"
+                print(f"[HIT] {self.username} a été touché en {move}")
+            else:
+                self.game_board[move] = "MISS"
         else:
             self.game_board[move] = "SHIP"
             print(f"Your move: {move} -> Placed a ship at {move}")
@@ -129,10 +132,11 @@ class BattleshipConnection:
         self.check_victory()
 
     def check_victory(self):
-        """Check if the current player has won"""
-        if len(self.game_board) >= 5:  # Victory condition (arbitrary, adjust as needed)
-            self.winner = self.username
+        enemy_hits = [v for v in self.game_board.values() if v == "HIT"]
+        if len(enemy_hits) >= 3:  # Nombre de navires coulés
+            self.winner = self.opponent  # Celui qui t’a coulé
             self.end_game()
+
 
     def start_game(self):
         """Start the game after both players agree"""
@@ -144,11 +148,7 @@ class BattleshipConnection:
 
     def end_game(self):
         """End the game and record the result"""
-        try:
-            response = requests.post(f"{self.matchmaking_url}/match_result", json={"winner": self.winner, "loser": self.opponent})
-            if response.status_code == 200:
-                print(f"[INFO] Game result recorded. {self.winner} wins!")
-            else:
-                print("[ERROR] Failed to record match result.")
-        except Exception as e:
-            print(f"[ERROR] Error ending game: {e}")
+        if self.winner == self.opponent:
+            loser = self.username
+        else:
+            loser = self.opponent

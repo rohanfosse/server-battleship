@@ -1,6 +1,5 @@
 {
-    "username":"Username",
-    "port":5555,
-    "matchmaking_url":"https://rfosse.pythonanywhere.com"
-  }
-  
+  "username": "Alice",
+  "port": 8001,
+  "matchmaking_url": "http://192.168.1.102:5000"
+}
