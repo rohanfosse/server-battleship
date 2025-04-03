@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify, render_template
 from datetime import datetime, timezone
 from bracket_generator import generate_bracket
 
-
 app = Flask(__name__)
 
 # === DATA STORES ===
@@ -19,22 +18,18 @@ tournament_state = {
     "started_at": None
 }
 
-
 # === FRONTEND ROUTES ===
 
 @app.route('/')
 def index():
-    """Serve the matchmaking dashboard"""
     return render_template('index.html')
 
 @app.route('/admin')
 def admin_panel():
-    """Serve the admin dashboard"""
     return render_template('admin.html')
 
 @app.route('/admin_data')
 def get_admin_data():
-    """Send all server state for admin view"""
     active = {
         m["code"]: {"player1": m["player1"], "player2": m["player2"]}
         for m in matches_history if m.get("winner") is None
@@ -50,7 +45,6 @@ def get_admin_data():
 
 @app.route('/auto_join', methods=['POST'])
 def auto_join():
-    """Register a player from their local client"""
     data = request.json
     username = data.get("username")
     port = data.get("port")
@@ -71,7 +65,6 @@ def auto_join():
 
 @app.route('/players')
 def get_players():
-    """Return all currently connected players"""
     return jsonify([
         {"username": u, **info} for u, info in players.items()
     ])
@@ -80,7 +73,6 @@ def get_players():
 
 @app.route('/propose_match', methods=['POST'])
 def propose_match():
-    """Send a match request from one player to another"""
     data = request.json
     from_player = data.get("from")
     to_player = data.get("to")
@@ -100,13 +92,11 @@ def propose_match():
 
 @app.route('/check_requests/<username>')
 def check_requests(username):
-    """Check for incoming match requests"""
     req = pending_requests.pop(username, None)
     return jsonify(req or {})
 
 @app.route('/confirm_match', methods=['POST'])
 def confirm_match():
-    """Start a match after both players agree"""
     data = request.json
     p1 = data.get("player1")
     p2 = data.get("player2")
@@ -124,7 +114,6 @@ def confirm_match():
 
 @app.route('/start_tournament_match', methods=['POST'])
 def start_tournament_match():
-    """Lancer un match de tournoi entre deux joueurs"""
     data = request.json
     p1 = data.get("player1")
     p2 = data.get("player2")
@@ -133,7 +122,6 @@ def start_tournament_match():
     if not p1 or not p2 or match_id is None:
         return jsonify({"error": "Missing player names or match ID"}), 400
 
-    # Vérifie que le match existe dans le bracket
     if not tournament_state["bracket"]:
         return jsonify({"error": "No tournament in progress"}), 400
 
@@ -141,11 +129,9 @@ def start_tournament_match():
     if not match:
         return jsonify({"error": "Match ID not found in bracket"}), 404
 
-    # Vérifie que le match n'a pas déjà de gagnant
     if match.get("opponent1", {}).get("result") == "win" or match.get("opponent2", {}).get("result") == "win":
         return jsonify({"error": "Match already completed"}), 400
 
-    # Enregistre le match dans l’historique
     match_code = f"{p1}_{p2}_{match_id}"
     matches_history.append({
         "player1": p1,
@@ -157,11 +143,10 @@ def start_tournament_match():
 
     return jsonify({"status": "match_started", "code": match_code})
 
-# === MATCHES WITH CODES (PRIVATE MATCHING) ===
+# === MATCHES WITH CODES ===
 
 @app.route('/create_match', methods=['POST'])
 def create_match():
-    """Create a private match using a code"""
     data = request.json
     username = data.get("player_id")
     code = data.get("code")
@@ -180,7 +165,6 @@ def create_match():
 
 @app.route('/join_match', methods=['POST'])
 def join_match():
-    """Join a match using its code"""
     data = request.json
     username = data.get("player_id")
     code = data.get("code")
@@ -202,24 +186,22 @@ def join_match():
 
 @app.route('/match_status')
 def match_status():
-    """Let the creator poll to see if the match has started"""
     code = request.args.get("code")
     if not code:
         return jsonify({'error': 'Missing code'}), 400
 
     for match in matches_history:
-        if match["code"] == code and match["winner"] is None:
-            return jsonify({"status": "active", "opponent": match["player2"]})
+        if match.get("code") == code and match.get("winner") is None:
+            return jsonify({"status": "active", "opponent": match.get("player2")})
     return jsonify({"status": "waiting"})
 
 # === TOURNAMENT ===
 
 @app.route('/bracket_data')
 def dynamic_bracket_data():
-    """Return the active bracket or generate one if needed"""
     if tournament_state["started"] and tournament_state["bracket"]:
         return jsonify(tournament_state["bracket"])
-    
+
     current_players = list(players.keys())
     if len(current_players) < 2:
         return jsonify({"error": "Not enough players to start a tournament"}), 400
@@ -228,7 +210,6 @@ def dynamic_bracket_data():
 
 @app.route('/start_tournament', methods=['POST'])
 def start_tournament():
-    """Launch the tournament and store bracket in memory"""
     global tournament_state
 
     current_players = list(players.keys())
@@ -254,10 +235,8 @@ def tournament_status():
         "players": list(players.keys())
     })
 
-
 @app.route('/reset_tournament', methods=['POST'])
 def reset_tournament():
-    """Reset the tournament state (admin action)"""
     global tournament_state
     tournament_state = {
         "started": False,
@@ -267,13 +246,10 @@ def reset_tournament():
     print("[TOURNAMENT] Reset")
     return jsonify({"status": "tournament_reset"})
 
-
-
-
 # === SCORES AND STATS ===
+
 @app.route('/match_result', methods=['POST'])
 def match_result():
-    """Submit the result of a finished match"""
     data = request.json
     winner = data.get("winner")
     loser = data.get("loser")
@@ -281,52 +257,52 @@ def match_result():
     if not winner or not loser:
         return jsonify({'error': 'Missing result data'}), 400
 
-    # ✅ Mise à jour du score général
     scores[winner] = scores.get(winner, 0) + 1
 
-    # ✅ Enregistrement dans l'historique (match le plus récent non terminé)
     for match in reversed(matches_history):
-        if match["winner"] is None and winner in [match["player1"], match["player2"]]:
+        if match.get("winner") is None and winner in [match.get("player1"), match.get("player2")]:
             match["winner"] = winner
             break
 
-    # ✅ Si un tournoi est en cours, on met à jour le bracket
     if tournament_state["started"] and tournament_state["bracket"]:
         matches = tournament_state["bracket"]["matches"]
         current_match = None
 
-        # Trouve le match dans le bracket
         for match in matches:
-            if match["opponent1"] and match["opponent1"].get("name") == winner:
-                match["opponent1"]["result"] = "win"
+            op1 = match.get("opponent1") or {}
+            op2 = match.get("opponent2") or {}
+
+            if op1.get("name") == winner:
+                op1["result"] = "win"
+                match["opponent1"] = op1
                 current_match = match
                 break
-            elif match["opponent2"] and match["opponent2"].get("name") == winner:
-                match["opponent2"]["result"] = "win"
+            elif op2.get("name") == winner:
+                op2["result"] = "win"
+                match["opponent2"] = op2
                 current_match = match
                 break
 
-        # Avance automatiquement le gagnant au tour suivant
         if current_match:
-            next_round = current_match["round"] + 1
-            current_round_matches = [m for m in matches if m["round"] == current_match["round"]]
+            current_round = current_match["round"]
+            next_round = current_round + 1
+            current_round_matches = [m for m in matches if m["round"] == current_round]
             next_round_matches = [m for m in matches if m["round"] == next_round]
 
-            # Index du match dans le round courant (permet de savoir où l’envoyer ensuite)
             match_index = current_round_matches.index(current_match)
             next_match_index = match_index // 2
 
             if next_match_index < len(next_round_matches):
                 next_match = next_round_matches[next_match_index]
-                target_slot = "opponent1" if not next_match.get("opponent1") else "opponent2"
-                next_match[target_slot] = {"id": None, "name": winner}
+                if not next_match.get("opponent1"):
+                    next_match["opponent1"] = {"id": None, "name": winner}
+                elif not next_match.get("opponent2"):
+                    next_match["opponent2"] = {"id": None, "name": winner}
 
     return jsonify({'status': 'result recorded'})
 
-
 @app.route('/scores_history')
 def scores_history():
-    """Return full match history and leaderboard"""
     sorted_scores = sorted(scores.items(), key=lambda x: -x[1])
     return jsonify({
         "scores": sorted_scores,
@@ -335,7 +311,6 @@ def scores_history():
 
 @app.route('/stats')
 def get_stats():
-    """Return aggregate statistics"""
     total = len(matches_history)
     durations = []
     wins = {}
@@ -357,7 +332,6 @@ def get_stats():
 
 @app.route('/pending_matches')
 def pending_matches():
-    """List all matches waiting to be joined"""
     return jsonify([
         {
             "code": code,
@@ -369,20 +343,18 @@ def pending_matches():
 
 @app.route('/disconnect', methods=['POST'])
 def disconnect():
-    """Unregister a player when their local client shuts down"""
     data = request.json
     username = data.get("username")
     if username in players:
         del players[username]
         print(f"[DISCONNECT] {username} has left the game.")
-        # Remove any pending requests or matches involving this player
         pending_requests.pop(username, None)
         matches_history[:] = [m for m in matches_history if m["player1"] != username and m["player2"] != username]
+        global waiting_matches
         waiting_matches = {k: v for k, v in waiting_matches.items() if v["creator"] != username}
     else:
         print(f"[DISCONNECT] {username} not found in players list.")
     return jsonify({'status': 'disconnected'})
-
 
 # === RUN FLASK ===
 

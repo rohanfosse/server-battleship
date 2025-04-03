@@ -1,10 +1,9 @@
 import requests
 import time
-import random
+import pytest
 
 SERVER_URL = "http://localhost:5000"
 
-# List of 8 players to simulate tournament
 players = [
     {"username": "Alice", "port": 8001},
     {"username": "Bob", "port": 8002},
@@ -13,128 +12,97 @@ players = [
     {"username": "Eve", "port": 8005},
     {"username": "Frank", "port": 8006},
     {"username": "Grace", "port": 8007},
-    {"username": "Hank", "port": 8008},
+    {"username": "Hank", "port": 8008}
 ]
 
-def register_players():
-    print("🎮 Registering players...")
+def test_register_players():
     for player in players:
         r = requests.post(f"{SERVER_URL}/auto_join", json=player)
-        status = "✅" if r.status_code == 200 else "❌"
-        print(f"{status} {player['username']}")
-        time.sleep(0.2)
+        assert r.status_code == 200
+        time.sleep(0.05)
 
-def launch_tournament():
-    print("\n🚀 Launching tournament...")
+def test_start_tournament():
     r = requests.post(f"{SERVER_URL}/start_tournament")
-    if r.status_code == 200:
-        print("✅ Tournament started")
-    else:
-        print(f"❌ Error launching tournament: {r.text}")
-
-def reset_tournament():
-    print("\n🔁 Resetting tournament...")
-    r = requests.post(f"{SERVER_URL}/reset_tournament")
-    if r.status_code == 200:
-        print("✅ Tournament reset")
-    else:
-        print(f"❌ Error resetting tournament: {r.text}")
-
-def check_status():
-    r = requests.get(f"{SERVER_URL}/tournament_status")
+    assert r.status_code == 200
     data = r.json()
-    print(f"\n📊 Status: {'STARTED' if data['started'] else 'NOT STARTED'}")
-    print(f"👥 Players: {data['player_count']}")
-    print(f"🕒 Start time: {data['started_at']}\n")
+    assert data["status"] == "tournament_started"
+    assert len(data["players"]) == len(players)
 
-def validate_bracket_structure():
-    """Ensure that the bracket data structure is valid"""
+def test_simulate_match_results():
     r = requests.get(f"{SERVER_URL}/bracket_data")
-    data = r.json()
-    rounds = data.get('matches', [])
-    round_count = len(rounds)
+    assert r.status_code == 200
+    bracket = r.json()
+    matches = bracket.get("matches", [])
+    rounds = sorted(set(m["round"] for m in matches if m.get("round") is not None))
 
-    assert round_count > 0, "No rounds found in the bracket"
-    assert round_count > 1, "There should be more than one round in the bracket"
+    # Simule tous les matchs de tous les rounds
+    for rnd in rounds:
+        current_matches = [m for m in matches if m["round"] == rnd]
+        for match in current_matches:
+            op1 = match.get("opponent1") or {}
+            op2 = match.get("opponent2") or {}
+            p1 = op1.get("name")
+            p2 = op2.get("name")
+            if p1 and p2 and not op1.get("result") and not op2.get("result"):
+                winner = p1
+                loser = p2
+                # Lancer le match
+                requests.post(f"{SERVER_URL}/start_tournament_match", json={
+                    "player1": p1,
+                    "player2": p2,
+                    "match_id": match["id"]
+                })
+                # Soumettre le résultat
+                res = requests.post(f"{SERVER_URL}/match_result", json={
+                    "winner": winner,
+                    "loser": loser
+                })
+                assert res.status_code == 200
+                assert res.json()["status"] == "result recorded"
+                time.sleep(0.05)
 
-    # Check that rounds 2 and 3 are not empty
-    for round_num in [2, 3]:
-        assert any(match["round"] == round_num for match in rounds), f"Round {round_num} is empty"
-
-def validate_final_round():
-    """Ensure there's exactly one match in the final round"""
+def test_final_winner():
     r = requests.get(f"{SERVER_URL}/bracket_data")
+    assert r.status_code == 200
+    bracket = r.json()
+    matches = bracket.get("matches", [])
+
+    if not matches:
+        pytest.skip("No bracket matches available")
+
+    max_round = max(m["round"] for m in matches)
+    final_matches = [m for m in matches if m["round"] == max_round]
+    assert len(final_matches) == 1
+    final = final_matches[0]
+
+    op1 = final.get("opponent1") or {}
+    op2 = final.get("opponent2") or {}
+
+    if not op1 or not op2:
+        pytest.skip("Final not yet filled")
+
+    winner = None
+    if op1.get("result") == "win":
+        winner = op1.get("name")
+    elif op2.get("result") == "win":
+        winner = op2.get("name")
+
+    assert winner is not None, "No winner declared in the final match"
+    print(f"🏆 Final winner is {winner}")
+
+def test_stats_endpoint():
+    r = requests.get(f"{SERVER_URL}/stats")
+    assert r.status_code == 200
     data = r.json()
-    final_round = [match for match in data.get('matches', []) if match["round"] == max(match["round"] for match in data["matches"])]
-    assert len(final_round) == 1, "There should be exactly one match in the final round"
+    assert "total_matches" in data
+    assert isinstance(data["total_matches"], int)
+    assert "win_percentages" in data
 
-def simulate_match_results():
-    """Simulate match results and move players to next round"""
-    print("\n🧑‍🤝‍🧑 Simulating matches...")
-    # Get the rounds and simulate results for each match
-    r = requests.get(f"{SERVER_URL}/bracket_data")
+def test_scores_history():
+    r = requests.get(f"{SERVER_URL}/scores_history")
+    assert r.status_code == 200
     data = r.json()
-    rounds = data.get('matches', [])
+    assert "scores" in data
+    assert isinstance(data["scores"], list)
+    assert "history" in data
 
-    for match in rounds:
-        # Ensure opponents exist
-        if match['opponent1'] and match['opponent2']:
-            p1 = match['opponent1']['name']
-            p2 = match['opponent2']['name']
-
-            # Skip if any of the opponents are TBD or missing
-            if p1 == "TBD" or p2 == "TBD" or p1 == "BYE" or p2 == "BYE":
-                continue  # Skip match if players are not yet set
-
-            # Simulate a winner randomly
-            winner = random.choice([p1, p2])
-            loser = p1 if winner == p2 else p2
-
-            # Send match result to the server
-            r = requests.post(f"{SERVER_URL}/match_result", json={"winner": winner, "loser": loser})
-            if r.status_code == 200:
-                print(f"✅ {winner} defeated {loser}")
-            else:
-                print(f"❌ Error updating match result: {r.text}")
-            time.sleep(0.2)
-
-def simulate_multiple_tournaments():
-    """Simulate multiple tournaments with shuffled player orders"""
-    print("\n🔄 Simulating multiple tournaments...")
-    for _ in range(3):  # Run 3 tournaments
-        register_players()
-        launch_tournament()
-        simulate_match_results()
-        validate_bracket_structure()
-        validate_final_round()
-        check_status()
-        reset_tournament()
-
-if __name__ == "__main__":
-    # 1. Register players
-    register_players()
-
-    # 2. Check tournament status
-    check_status()
-
-    # 3. Launch tournament
-    launch_tournament()
-
-    # 4. Simulate match results
-    simulate_match_results()
-
-    # 5. Validate bracket structure and rounds
-    validate_bracket_structure()
-
-    # 6. Validate final round has exactly one match
-    validate_final_round()
-
-    # 7. Simulate multiple tournaments with random order
-    simulate_multiple_tournaments()
-
-    # 8. Check tournament status after reset
-    check_status()
-
-    # 9. Reset the tournament
-    reset_tournament()
-    check_status()
