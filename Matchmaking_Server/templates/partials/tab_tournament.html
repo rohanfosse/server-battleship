@@ -1,25 +1,41 @@
-<h4>Tournament Overview</h4>
+<h4 class="mb-3">🏆 Tournament Overview</h4>
+
+<!-- Current round and progress -->
 <div class="mb-3">
-  <p><strong>Current Round:</strong> <span id="current-round">1</span></p>
+  <p class="mb-1">
+    <strong>Current Round:</strong>
+    <span id="current-round">1</span>
+  </p>
   <div class="progress">
-    <div class="progress-bar" id="round-progress" style="width: 0%">0%</div>
+    <div id="round-progress" class="progress-bar bg-success" style="width: 0%">0%</div>
   </div>
 </div>
 
-<div class="mb-3 d-flex gap-2">
+<!-- Tournament action buttons -->
+<div class="mb-4 d-flex flex-wrap gap-2">
   <button class="btn btn-outline-primary" onclick="generateBracket()">🧩 Generate Bracket</button>
   <button id="btn-launch-tournament" class="btn btn-success" onclick="launchTournament()">🚀 Launch Tournament</button>
   <button class="btn btn-danger" onclick="resetTournament()">🔁 Reset</button>
 </div>
 
-<h5>Matches This Round</h5>
-<div id="tournament-matches" class="list-group"></div>
+<!-- Match list for current round -->
+<h5>🎮 Matches This Round</h5>
+<div id="tournament-matches" class="list-group mb-4"></div>
 
-<div class="mt-4">
-  <h5>Tournament Bracket</h5>
-  <div id="tournament-status" class="alert d-flex justify-content-between align-items-center small" role="alert">
-    <span id="tournament-status-label">Tournament not started.</span>
-    <span id="tournament-player-count"></span>
-  </div>
-  <div id="bracket-viewer" style="width:100%; overflow-x:auto; min-height: 500px;"></div>
+<!-- Full bracket viewer -->
+<h5>📊 Tournament Bracket</h5>
+<div id="tournament-status" class="alert alert-secondary d-flex justify-content-between align-items-center small" role="alert">
+  <span id="tournament-status-label">Tournament not started.</span>
+  <span id="tournament-player-count">👥 0 players</span>
+</div>
+
+<!-- Bracket render zone -->
+<div id="bracket-viewer" style="width: 100%; overflow-x: auto; min-height: 500px;"></div>
+
+<!-- Legend -->
+<div class="mt-4 small text-muted">
+  <strong>Legend:</strong> 
+  <span class="ms-2">🧩 Bracket auto-generates based on connected players</span> • 
+  <span class="ms-2">🏆 Winner highlighted per match</span> • 
+  <span class="ms-2">"TBD" = Player not yet assigned</span>
 </div>

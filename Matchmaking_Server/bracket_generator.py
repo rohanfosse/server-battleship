@@ -1,11 +1,26 @@
-# bracket_generator.py
-
+from typing import List, Dict, Any
 import math
 import random
-from typing import List, Dict, Any
 
 def generate_bracket(players: List[str]) -> Dict[str, Any]:
     """Generate a single elimination bracket from a list of player names."""
+    if not players or len(players) < 2:
+        return {
+            "stages": [],
+            "matches": [],
+            "participants": [],
+            "error": "At least two players are required to generate a bracket."
+        }
+
+    players = [p for p in players if isinstance(p, str) and p.strip()]
+    if len(players) < 2:
+        return {
+            "stages": [],
+            "matches": [],
+            "participants": [],
+            "error": "Invalid player names."
+        }
+
     random.shuffle(players)
     n = len(players)
     next_power = 2 ** math.ceil(math.log2(n))
@@ -18,21 +33,23 @@ def generate_bracket(players: List[str]) -> Dict[str, Any]:
         pid = i + 1
         if name:
             participants.append({"id": pid, "name": name})
-            participant_map[i] = pid
+            participant_map[i] = {"id": pid, "name": name}
         else:
             participant_map[i] = None
-
-    all_rounds = [{"p1": participant_map[i], "p2": participant_map[i+1]}
-                  for i in range(0, len(participant_map), 2)]
 
     matches = []
     match_id = 1
     stage_id = 1
-
-    current_round = all_rounds
     round_number = 1
 
+    def build_round(pairs):
+        return [{"p1": pairs[i], "p2": pairs[i + 1] if i + 1 < len(pairs) else None}
+                for i in range(0, len(pairs), 2)]
+
+    current_round = build_round(list(participant_map.values()))
+
     while current_round:
+        next_pairs = []
         for match in current_round:
             matches.append({
                 "id": match_id,
@@ -41,16 +58,17 @@ def generate_bracket(players: List[str]) -> Dict[str, Any]:
                 "group": 0,
                 "child_count": 1,
                 "status": 0,
-                "opponent1": {"id": match["p1"], "score": None} if match["p1"] else None,
-                "opponent2": {"id": match["p2"], "score": None} if match["p2"] else None
+                "opponent1": match["p1"],
+                "opponent2": match["p2"]
             })
             match_id += 1
+            next_pairs.append(None)  # Placeholder for future winners
 
-        next_round_size = len(current_round) // 2
-        current_round = [{"p1": None, "p2": None} for _ in range(next_round_size)]
-        round_number += 1
-        if next_round_size == 0:
+        if len(next_pairs) <= 1:
             break
+
+        current_round = build_round(next_pairs)
+        round_number += 1
 
     return {
         "stages": [{
