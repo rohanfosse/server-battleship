@@ -8,7 +8,7 @@ import time
 from Student_Client.core.BattleshipConnection import BattleshipConnection
 
 # === CONFIGURATION ===
-with open("config.json") as f:
+with open("Student_Client/client/config.json") as f:
     config = json.load(f)
 
 USERNAME = config["username"]

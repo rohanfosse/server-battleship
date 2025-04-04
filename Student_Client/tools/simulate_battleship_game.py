@@ -8,7 +8,7 @@ from Student_Client.core.BattleshipConnection import BattleshipConnection
 # === CONFIGURATION ===
 PLAYER1 = {"username": "Alice", "port": 9001}
 PLAYER2 = {"username": "Bob", "port": 9002}
-SERVER_URL = "http://localhost:5000"
+SERVER_URL = "https://rfosse.pythonanywhere.com"
 
 # === OUTILS ===
 
